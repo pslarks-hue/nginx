@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grungeomatic</title>
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Grungeomatic">
+
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background: radial-gradient(circle at top, #1b1b1b, #000);
+      color: #e6e6e6;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 0.6rem;
+      margin: 0.4rem 0;
+      font-size: 1rem;
+      background: #111;
+      color: #f5f5f5;
+      border: 1px solid #444;
+    }
+
+    input::placeholder {
+      color: #777;
+    }
+
+    button {
+      background: #3b7d4a;
+      border: 1px solid #2a5d36;
+      cursor: pointer;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    button:hover {
+      background: #2a5d36;
+    }
+
+    .rating-container {
+      margin: 0.8rem 0;
+    }
+
+    .rating-value {
+      text-align: center;
+      font-weight: bold;
+      margin-top: 0.3rem;
+      color: #9be3b1;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 1rem;
+    }
+
+    li {
+      background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+      padding: 0.6rem;
+      margin: 0.5rem 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid #3b7d4a;
+    }
+
+    .rating {
+      font-weight: bold;
+      color: #9be3b1;
+      margin-left: 0.5rem;
+    }
+
+    .delete {
+      background: #5c1a1a;
+      color: white;
+      border: 1px solid #7a2a2a;
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+    }
+
+    .delete:hover {
+      background: #7a2a2a;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎸 Grungeomatic</h1>
+
+  <input id="song" placeholder="Song title" />
+  <input id="artist" placeholder="Artist" />
+  <input id="album" placeholder="Album" />
+
+  <div class="rating-container">
+    <label for="rating">Rating (1–10)</label>
+    <input id="rating" type="range" min="1" max="10" step="1" value="5" />
+    <div class="rating-value">Rating: <span id="ratingValue">5</span>/10</div>
+  </div>
+
+  <button onclick="addSong()">Add song</button>
+  <button onclick="exportCSV()">Export CSV</button>
+
+  <ul id="songList"></ul>
+
+  <script>
+    const songList = document.getElementById('songList');
+    const ratingInput = document.getElementById('rating');
+    const ratingValueDisplay = document.getElementById('ratingValue');
+
+    ratingInput.addEventListener('input', () => {
+      ratingValueDisplay.textContent = ratingInput.value;
+    });
+
+    function loadSongs() {
+      const songs = JSON.parse(localStorage.getItem('songs')) || [];
+      songs.forEach(renderSong);
+    }
+
+    function saveSongs() {
+      const songs = [];
+      document.querySelectorAll('li').forEach(li => {
+        songs.push({
+          title: li.dataset.title,
+          artist: li.dataset.artist,
+          album: li.dataset.album,
+          rating: li.dataset.rating
+        });
+      });
+      localStorage.setItem('songs', JSON.stringify(songs));
+    }
+
+    function renderSong(song) {
+      const li = document.createElement('li');
+      li.dataset.title = song.title;
+      li.dataset.artist = song.artist;
+      li.dataset.album = song.album;
+      li.dataset.rating = song.rating;
+
+      const span = document.createElement('span');
+      span.textContent = `${song.title} – ${song.artist} (${song.album})`;
+
+      const rating = document.createElement('span');
+      rating.className = 'rating';
+      rating.textContent = `${song.rating}/10`;
+
+      const del = document.createElement('button');
+      del.className = 'delete';
+      del.textContent = '✕';
+      del.onclick = () => {
+        li.remove();
+        saveSongs();
+      };
+
+      li.append(span, rating, del);
+      songList.appendChild(li);
+    }
+
+    function addSong() {
+      const title = document.getElementById('song').value.trim();
+      const artist = document.getElementById('artist').value.trim();
+      const album = document.getElementById('album').value.trim();
+      const rating = ratingInput.value;
+
+      if (!title || !artist || !album) return;
+
+      const entry = { title, artist, album, rating };
+
+      renderSong(entry);
+      saveSongs();
+
+      document.getElementById('song').value = '';
+      document.getElementById('artist').value = '';
+      document.getElementById('album').value = '';
+      ratingInput.value = 5;
+      ratingValueDisplay.textContent = '5';
+    }
+
+    function exportCSV() {
+      const songs = JSON.parse(localStorage.getItem('songs')) || [];
+      let csv = 'Song,Artist,Album,Rating\n';
+      songs.forEach(s => {
+        csv += `"${s.title}","${s.artist}","${s.album}","${s.rating}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'grungeomatic-ratings.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    loadSongs();
+  </script>
+</body>
+</html>
